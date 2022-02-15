@@ -1,6 +1,10 @@
 struct LinearHash {
     hash_digit: u64,
     hash_mask: u64,
+    threshold: f64,
+    size: u64,
+    bucket_size: u64,
+    bucket_count: u64,
     buckets: Vec<Bucket>
 }
 
@@ -18,6 +22,10 @@ impl LinearHash {
         let mut lh = LinearHash {
             hash_digit: 1,
             hash_mask: 1,
+            threshold: 0.85,
+            size: 0, 
+            bucket_size: 2,
+            bucket_count: 2,
             buckets: Vec::new()
         };
         lh.buckets.push(b0);
@@ -28,18 +36,22 @@ impl LinearHash {
     pub fn display(&self){
         println!("=== Data Structure State ===============================================");
         for i in 0..self.buckets.len() {
-            if i < 2 {
-                println!("Bucket    {}: key = {:#05b}, values = {:?}", i, self.buckets[i].key, self.buckets[i].values);
-            } else {
-                println!("OVERFLOW  {}: key = {:#05b}, values = {:?}", i, self.buckets[i].key, self.buckets[i].values);
+            println!("Bucket {}: key = {:#05b}", i, self.buckets[i].key);
+            print!("\tRegular:  [");
+            for j in 0..self.buckets[i].values.len() {
+                if j == 2 {
+                    print!("]\n\tOverflow: [");
+                } 
+                print!("{}, ", self.buckets[i].values[j]);
             }
+            println!("]")
         }
     }
 
     fn hash(&mut self, value: u64) -> u64 {
         let hash_value = value & self.hash_mask;
 
-        println!("=== HASHING ============================================================");
+        println!("=== HASHING ===");
         println!("Inputed value - {:#014b}", value);
         println!("Hashing digit - {:#014b}", self.hash_digit);
         println!("Hashing mask  - {:#014b}", self.hash_mask);
@@ -48,15 +60,53 @@ impl LinearHash {
     }
 
     pub fn add(&mut self, value: u64){
+        println!("=== ADDING =============================================================");
         // hashing value
-        println!("=== ADDING ============================================================");
         let hash_value = self.hash(value);
+        let mut bucket_index:usize = 0;
 
         // determine bucket
+        if hash_value < self.bucket_count{
+            bucket_index = hash_value as usize;
 
-        // add to bucket
+        }
+        else{
+            let i: u64 = hash_value - u64::pow(2, (self.hash_digit - 1) as u32);
+            bucket_index = i as usize;
+        }
+
+        // add to buckets
+        self.buckets[bucket_index].values.push(value);
+
+        // iterate state
+        self.size += 1;
+
+        println!("Added {} to bucket {}", value, bucket_index);
 
         // split on threshold
+        let capacity: f64 = self.size as f64 / (self.bucket_size as f64 * self.bucket_count as f64);
+        println!("Capacity is {}", capacity);
+        if capacity > self.threshold {
+            println!("Threshold exceded, creating new bucket...");
+            self.create_bucket();
+        }
+
+    }
+
+    fn create_bucket(&mut self){
+        // increment ds variables
+        self.bucket_count += 1;
+        self.update_hash_mask();
+
+        // change bucket hash width, redistribute the values
+        if self.is_power_of_two(self.hash_digit){
+
+        }
+
+        //add new bucket
+        let mut b = Bucket{key: self.bucket_count, values: Vec::new()};
+        self.buckets.push(b);
+
     }
 
     fn update_hash_mask(&mut self) {
@@ -66,6 +116,10 @@ impl LinearHash {
         }
         self.hash_mask = mask;
     }
+
+    fn is_power_of_two(&self, x: u64) -> bool {
+        return (x != 0) && ((x & (x - 1)) == 0);
+    }
 }
 
 fn main(){
@@ -74,7 +128,12 @@ fn main(){
 
     lh.display();
 
+    lh.add(2);
+    lh.add(34);
+    lh.add(11);
     lh.add(1);
+    lh.add(12);
+    lh.add(6);
 
     lh.display();
 }
