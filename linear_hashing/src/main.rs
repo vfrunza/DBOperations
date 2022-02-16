@@ -39,10 +39,16 @@ impl LinearHash {
             println!("Bucket {}: key = {:#05b}", i, self.buckets[i].key);
             print!("\tRegular:  [");
             for j in 0..self.buckets[i].values.len() {
-                if j == 2 {
+                if j == 0{
+                    print!("");
+                }
+                else if j == 2 {
                     print!("]\n\tOverflow: [");
                 } 
-                print!("{}, ", self.buckets[i].values[j]);
+                else{
+                    print!(", ");
+                }
+                print!("{}", self.buckets[i].values[j]);
             }
             println!("]")
         }
@@ -52,8 +58,8 @@ impl LinearHash {
         let hash_value = value & self.hash_mask;
 
         println!("=== HASHING ===");
+        println!("Hashing digit - {}", self.hash_digit);
         println!("Inputed value - {:#014b}", value);
-        println!("Hashing digit - {:#014b}", self.hash_digit);
         println!("Hashing mask  - {:#014b}", self.hash_mask);
         println!("Hash value    - {:#014b}", hash_value);
         return hash_value;
@@ -98,15 +104,60 @@ impl LinearHash {
         self.bucket_count += 1;
         self.update_hash_mask();
 
-        // change bucket hash width, redistribute the values
-        if self.is_power_of_two(self.hash_digit){
-
-        }
-
         //add new bucket
-        let mut b = Bucket{key: self.bucket_count, values: Vec::new()};
+        let mut b = Bucket{key: self.bucket_count - 1, values: Vec::new()};
         self.buckets.push(b);
 
+        // change bucket hash width, redistribute the values
+        if self.is_power_of_two(self.hash_digit){
+            self.hash_digit += 1;
+        }
+
+        self.redistribute();
+    }
+
+    fn redistribute(&mut self){
+        println!("=== REDISTRIBUTING ===");
+        self.display();
+        let mut v: Vec<Vec<u64>> = Vec::new();
+
+        // create buckets
+        for i in 0..self.bucket_count {
+            v.push(Vec::new());
+        }
+
+        for i in 0..self.buckets.len() {
+            for j in 0..self.buckets[i].values.len() {
+                // hashing value
+                let hash_value = self.hash(self.buckets[i].values[j]);
+                let mut bucket_index:usize = 0;
+
+                // determine bucket
+                if hash_value < self.bucket_count{
+                    bucket_index = hash_value as usize;
+
+                }
+                else{
+                    let n: u64 = hash_value - u64::pow(2, (self.hash_digit - 1) as u32);
+                    bucket_index = n as usize;
+                }
+
+                // add to buckets
+                v[bucket_index].push(self.buckets[i].values[j]);
+
+                println!("Added {} to bucket {}", self.buckets[i].values[j], bucket_index);
+            }
+        }
+
+        // clear buckets
+        for i in 0..self.buckets.len() {
+            self.buckets[i].values.clear();
+            for j in 0..v[i].len(){
+                self.buckets[i].values.push(v[i][j]);
+             }
+        }
+
+        self.display();
     }
 
     fn update_hash_mask(&mut self) {
@@ -128,12 +179,14 @@ fn main(){
 
     lh.display();
 
-    lh.add(2);
-    lh.add(34);
-    lh.add(11);
-    lh.add(1);
+    lh.add(0);
+    lh.add(15);
+    lh.add(8);
+    lh.add(4);
+    lh.add(7);
     lh.add(12);
-    lh.add(6);
+    lh.add(10);
+    lh.add(11);
 
     lh.display();
 }
