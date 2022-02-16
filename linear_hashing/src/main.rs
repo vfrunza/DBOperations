@@ -1,3 +1,5 @@
+use rand::Rng;
+
 struct LinearHash {
     hash_digit: u64,
     hash_mask: u64,
@@ -35,6 +37,10 @@ impl LinearHash {
 
     pub fn display(&self){
         println!("=== Data Structure State ===============================================");
+        println!("hash_digit: {}", self.hash_digit);
+        println!("size: {}", self.size);
+        println!("bucket_count: {}", self.bucket_count);
+
         for i in 0..self.buckets.len() {
             println!("Bucket {}: key = {:#05b}", i, self.buckets[i].key);
             print!("\tRegular:  [");
@@ -102,15 +108,15 @@ impl LinearHash {
     fn create_bucket(&mut self){
         // increment ds variables
         self.bucket_count += 1;
-        self.update_hash_mask();
 
         //add new bucket
         let mut b = Bucket{key: self.bucket_count - 1, values: Vec::new()};
         self.buckets.push(b);
 
         // change bucket hash width, redistribute the values
-        if self.is_power_of_two(self.hash_digit){
+        if self.is_power_of_two(self.bucket_count - 1){
             self.hash_digit += 1;
+            self.update_hash_mask();
         }
 
         self.redistribute();
@@ -175,6 +181,8 @@ impl LinearHash {
 
 fn main(){
     println!("Welcome to Linear Hashing Simulator!");
+
+    let mut rng = rand::thread_rng();
     let mut lh = LinearHash::new();
 
     lh.display();
@@ -187,6 +195,10 @@ fn main(){
     lh.add(12);
     lh.add(10);
     lh.add(11);
+
+    //for i in 0..200{
+    //    lh.add(rng.gen_range(0..1000) as u64);
+    //}
 
     lh.display();
 }
